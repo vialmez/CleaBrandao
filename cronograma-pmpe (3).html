@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cronograma Operacional — PMPE</title>
+<style>
+  :root{
+    --paper:#F6F4EF;
+    --ink:#1B2430;
+    --navy:#223354;
+    --navy-soft:#3A4A6B;
+    --navy-pale:#E8EBF1;
+    --gold:#C79A3D;
+    --green:#3C8361;
+    --green-pale:#E7F1EB;
+    --line:#DDD8CC;
+    --muted:#79746A;
+    --card:#FFFFFF;
+    --radius:7px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    line-height:1.4;
+  }
+  .app{max-width:760px;margin:0 auto;padding:20px 16px 60px;}
+
+  /* HEADER */
+  .board-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;}
+  .badge{
+    flex:0 0 auto;width:46px;height:46px;border-radius:50%;
+    background:var(--navy);color:var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;letter-spacing:0.5px;
+    border:2px solid var(--gold);
+  }
+  .board-header h1{margin:0;font-size:20px;font-weight:700;color:var(--navy);letter-spacing:-0.2px;}
+  .board-header p{margin:3px 0 0;font-size:13px;color:var(--muted);}
+
+  /* WEEK STRIP */
+  .week-strip{display:flex;gap:6px;margin-bottom:20px;}
+  .day-btn{
+    flex:1;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:8px 4px 7px;cursor:pointer;text-align:center;transition:background .15s, border-color .15s;
+  }
+  .day-btn:hover{border-color:var(--navy-soft);}
+  .day-btn.active{background:var(--navy);border-color:var(--navy);}
+  .day-btn .lbl{display:block;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:0.3px;}
+  .day-btn.active .lbl{color:#fff;}
+  .day-btn .track{margin-top:6px;height:4px;background:var(--navy-pale);border-radius:2px;overflow:hidden;}
+  .day-btn.active .track{background:rgba(255,255,255,.25);}
+  .day-btn .fill{height:100%;background:var(--gold);border-radius:2px;transition:width .25s;}
+
+  /* DAY PANEL */
+  #day-panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 16px 8px;}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .panel-head h2{margin:0;font-size:17px;color:var(--navy);font-weight:700;}
+  .fixed-note{font-size:11.5px;color:var(--muted);background:var(--navy-pale);padding:3px 8px;border-radius:20px;}
+
+  .progress-wrap{margin:10px 0 16px;}
+  .progress-track{height:10px;background:var(--navy-pale);border-radius:6px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--green));width:0%;transition:width .3s;}
+  .progress-text{display:flex;justify-content:space-between;margin-top:6px;font-size:12.5px;color:var(--muted);}
+  .progress-text .msg{font-weight:600;color:var(--navy);}
+
+  /* TIMELINE */
+  .timeline{list-style:none;margin:0;padding:0;position:relative;}
+  .timeline li{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);}
+  .timeline li:last-child{border-bottom:none;}
+  .time-col{flex:0 0 74px;font-size:11.5px;color:var(--muted);padding-top:3px;font-variant-numeric:tabular-nums;}
+
+  .item-card{
+    flex:1;display:flex;align-items:flex-start;gap:10px;
+    background:var(--paper);border-left:4px solid var(--line);border-radius:6px;
+    padding:9px 10px;
+  }
+  .item-card.done{background:var(--green-pale);border-left-color:var(--green) !important;}
+  .item-card input[type=checkbox]{
+    width:20px;height:20px;flex:0 0 20px;margin-top:1px;accent-color:var(--green);cursor:pointer;
+  }
+  .item-body{flex:1;min-width:0;}
+  .item-title{font-size:13.5px;font-weight:600;color:var(--ink);}
+  .item-card.done .item-title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--green);}
+  .item-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .item-meta{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;}
+  .chip{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;color:#fff;}
+  .dur{font-size:10.5px;color:var(--muted);}
+
+  /* fixed / pause rows */
+  .anchor{display:flex;align-items:center;gap:8px;padding-left:2px;}
+  .anchor .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:0 0 8px;}
+  .anchor.terapia .dot, .anchor.espirita .dot{background:var(--gold);}
+  .anchor-text{font-size:12.5px;color:var(--muted);font-style:italic;}
+  .anchor.terapia .anchor-text, .anchor.espirita .anchor-text{color:var(--navy-soft);font-style:normal;font-weight:600;}
+
+  /* FOOTER CONTROLS */
+  .panel-foot{display:flex;justify-content:space-between;align-items:center;padding:14px 0 10px;margin-top:6px;border-top:1px solid var(--line);}
+  .reset-btn{
+    background:none;border:1px solid var(--line);color:var(--muted);font-size:12px;
+    padding:6px 12px;border-radius:20px;cursor:pointer;
+  }
+  .reset-btn:hover{border-color:#c0392b;color:#c0392b;}
+
+  /* LEGEND */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;padding:12px 4px 0;}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+  .legend-dot{width:9px;height:9px;border-radius:50%;}
+
+  .status-line{text-align:center;font-size:12px;color:var(--muted);padding:20px 0;}
+  .week-reset{display:block;margin:14px auto 0;background:none;border:none;color:var(--muted);font-size:11.5px;text-decoration:underline;cursor:pointer;}
+
+  @media (max-width:480px){
+    .day-btn .lbl{font-size:10px;}
+    .time-col{flex-basis:58px;font-size:10.5px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="board-header">
+    <div class="badge">PMPE</div>
+    <div>
+      <h1>Cronograma Operacional</h1>
+      <p>Sistema de foco semanal — um bloco por vez, sem se perder.</p>
+    </div>
+  </div>
+
+  <div class="week-strip" id="weekStrip"></div>
+
+  <div id="day-panel">
+    <div class="status-line" id="loadingMsg">Carregando seu progresso…</div>
+  </div>
+  <noscript>
+    <div class="status-line" style="color:#c0392b;">
+      Este arquivo precisa de JavaScript para funcionar. Abra-o direto no Safari/Chrome (não no visualizador rápido de anexos) e tente novamente.
+    </div>
+  </noscript>
+
+  <button class="week-reset" id="resetWeekBtn" style="display:none;">Reiniciar a semana inteira</button>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'pmpe-progress-v1';
+  let progress = {};
+  let storageReady = false;
+
+  const SUBJECTS = {
+    academia:      {label:'Academia',              color:'#5A6472'},
+    rlm:           {label:'RLM',                    color:'#A54A32'},
+    portugues:     {label:'Português',              color:'#2E6F9E'},
+    historia:      {label:'História de PE',         color:'#7A5C2E'},
+    constitucional:{label:'Dir. Constitucional',    color:'#2E7D6B'},
+    informatica:   {label:'Informática',            color:'#5C4A8A'},
+    ddhh:          {label:'Direitos Humanos',       color:'#8A6E2E'},
+    legislacao:    {label:'Legislação Extravagante',color:'#6B4A6B'},
+    redacao:       {label:'Redação',                color:'#3C6B4A'},
+    revisao:       {label:'Revisão',                color:'#4A5568'},
+  };
+
+  const DAYS = [
+    {key:'seg', label:'Segunda-feira', short:'SEG', note:'Terapia às 19h'},
+    {key:'ter', label:'Terça-feira',   short:'TER', note:null},
+    {key:'qua', label:'Quarta-feira',  short:'QUA', note:null},
+    {key:'qui', label:'Quinta-feira',  short:'QUI', note:null},
+    {key:'sex', label:'Sexta-feira',   short:'SEX', note:'Centro Espírita 20h–22h'},
+    {key:'sab', label:'Sábado',        short:'SÁB', note:'Começa 10h · tarde livre garantida'},
+    {key:'dom', label:'Domingo',       short:'DOM', note:'Começa 10h · noite livre garantida'},
+  ];
+
+  // type: 'task' (checável) | 'check' (compromisso fixo) | 'pause' (pausa/pomodoro)
+  const SCHEDULE = {
+    seg: [
+      {t:'17:00–18:15', type:'check', title:'Deslocamento trabalho → casa'},
+      {t:'18:15–18:45', type:'check', title:'Chegada, banho e lanche'},
+      {t:'19:00–20:00', type:'check', title:'Terapia', anchorClass:'terapia'},
+      {t:'20:15–21:00', type:'task', subject:'academia', title:'Treino Academia', dur:'45min'},
+      {t:'21:00–21:30', type:'check', title:'Jantar'},
+      {t:'21:30–21:55', type:'task', subject:'rlm', title:'Teoria RLM (PDF) — micro-bloco', sub:'Só um tópico pequeno. Sem pressão de terminar tudo.', dur:'25min'},
+      {t:'21:55–22:00', type:'task', subject:'revisao', title:'Revisão relâmpago: o que aprendi hoje?', dur:'5min'},
+    ],
+    ter: [
+      {t:'17:00–18:15', type:'check', title:'Deslocamento trabalho → casa'},
+      {t:'18:15–18:30', type:'check', title:'Lanche e descanso'},
+      {t:'18:30–19:15', type:'task', subject:'academia', title:'Treino Academia', dur:'45min'},
+      {t:'19:15–19:30', type:'check', title:'Banho / pausa'},
+      {t:'19:30–20:15', type:'task', subject:'portugues', title:'Teoria PDF — Português', sub:'Escolha 1 tópico do edital (ex.: crase, concordância, regência).', dur:'45min'},
+      {t:'20:15–20:25', type:'pause', title:'Pausa ativa — alongar e beber água'},
+      {t:'20:25–20:55', type:'task', subject:'rlm', title:'Teoria RLM (PDF/vídeo)', dur:'30min'},
+      {t:'20:55–21:05', type:'pause', title:'Pausa curta'},
+      {t:'21:05–21:35', type:'task', subject:'informatica', title:'Bateria de Questões — Informática', sub:'Teoria vista domingo · espaçamento de 48h ✔', dur:'30min'},
+      {t:'21:35–21:45', type:'task', subject:'revisao', title:'Revisão relâmpago do dia', dur:'5min'},
+    ],
+    qua: [
+      {t:'17:00–18:15', type:'check', title:'Deslocamento trabalho → casa'},
+      {t:'18:15–18:30', type:'check', title:'Lanche e descanso'},
+      {t:'18:30–19:15', type:'task', subject:'academia', title:'Treino Academia', dur:'45min'},
+      {t:'19:15–19:30', type:'check', title:'Banho / pausa'},
+      {t:'19:30–20:15', type:'task', subject:'constitucional', title:'Teoria PDF — Direito Constitucional', dur:'45min'},
+      {t:'20:15–20:25', type:'pause', title:'Pausa ativa — alongar e beber água'},
+      {t:'20:25–20:55', type:'task', subject:'rlm', title:'Teoria RLM (PDF/vídeo)', dur:'30min'},
+      {t:'20:55–21:05', type:'pause', title:'Pausa curta'},
+      {t:'21:05–21:35', type:'task', subject:'portugues', title:'Bateria de Questões — Português', sub:'Teoria de terça · espaçamento de 24h ✔', dur:'30min'},
+      {t:'21:35–21:45', type:'task', subject:'revisao', title:'Revisão relâmpago do dia', dur:'5min'},
+    ],
+    qui: [
+      {t:'17:00–18:15', type:'check', title:'Deslocamento trabalho → casa'},
+      {t:'18:15–18:30', type:'check', title:'Lanche e descanso'},
+      {t:'18:30–19:15', type:'task', subject:'academia', title:'Treino Academia', dur:'45min'},
+      {t:'19:15–19:30', type:'check', title:'Banho / pausa'},
+      {t:'19:30–20:15', type:'task', subject:'historia', title:'Teoria PDF — História de Pernambuco', dur:'45min'},
+      {t:'20:15–20:25', type:'pause', title:'Pausa ativa — alongar e beber água'},
+      {t:'20:25–20:55', type:'task', subject:'rlm', title:'Teoria RLM (PDF/vídeo)', dur:'30min'},
+      {t:'20:55–21:05', type:'pause', title:'Pausa curta'},
+      {t:'21:05–21:35', type:'task', subject:'constitucional', title:'Bateria de Questões — Direito Constitucional', sub:'Teoria de quarta · espaçamento de 24h ✔', dur:'30min'},
+      {t:'21:35–21:45', type:'task', subject:'revisao', title:'Revisão relâmpago do dia', dur:'5min'},
+    ],
+    sex: [
+      {t:'17:00–18:15', type:'check', title:'Deslocamento trabalho → casa'},
+      {t:'18:15–18:45', type:'task', subject:'academia', title:'Treino Academia (leve)', dur:'30min'},
+      {t:'18:45–19:15', type:'check', title:'Jantar e banho'},
+      {t:'19:15–19:35', type:'task', subject:'historia', title:'Bateria de Questões — História de Pernambuco', sub:'Teoria de quinta · espaçamento de 24h ✔', dur:'20min'},
+      {t:'19:35–19:45', type:'task', subject:'rlm', title:'RLM — revisão relâmpago (flashcards/mapa mental)', dur:'10min'},
+      {t:'19:45–20:00', type:'check', title:'Preparação / deslocamento'},
+      {t:'20:00–22:00', type:'check', title:'Centro Espírita', anchorClass:'espirita'},
+    ],
+    sab: [
+      {t:'09:00–10:00', type:'check', title:'Acordar com calma, café da manhã sem pressa'},
+      {t:'10:00–10:45', type:'task', subject:'ddhh', title:'Teoria PDF — Direitos Humanos', dur:'45min'},
+      {t:'10:45–10:55', type:'pause', title:'Pausa ativa'},
+      {t:'10:55–11:40', type:'task', subject:'legislacao', title:'Teoria PDF — Legislação Extravagante', dur:'45min'},
+      {t:'11:40–11:50', type:'pause', title:'Pausa ativa'},
+      {t:'11:50–12:20', type:'task', subject:'rlm', title:'Teoria RLM (PDF/vídeo) — bloco de aprofundamento', dur:'30min'},
+      {t:'12:20–14:50', type:'check', title:'Almoço + lazer (tempo livre de verdade, sem culpa)'},
+      {t:'14:50–15:20', type:'task', subject:'rlm', title:'Bateria de Questões — RLM (revisão da semana)', dur:'30min'},
+      {t:'15:20–15:30', type:'pause', title:'Pausa ativa'},
+      {t:'15:30–16:00', type:'task', subject:'redacao', title:'Redação — leitura de 1 modelo + fichamento de argumentos', dur:'30min'},
+      {t:'16:00–16:10', type:'pause', title:'Pausa curta'},
+      {t:'16:10–16:30', type:'task', subject:'redacao', title:'Redação — produção do rascunho (tema do edital)', dur:'20min'},
+      {t:'16:30–16:50', type:'task', subject:'revisao', title:'Revisão geral da semana — mapa mental', dur:'20min'},
+      {t:'16:50 →', type:'check', title:'Tempo livre / lazer'},
+    ],
+    dom: [
+      {t:'09:00–10:00', type:'check', title:'Acordar com calma, café da manhã sem pressa'},
+      {t:'10:00–10:45', type:'task', subject:'informatica', title:'Teoria PDF — Informática', dur:'45min'},
+      {t:'10:45–10:55', type:'pause', title:'Pausa ativa'},
+      {t:'10:55–11:25', type:'task', subject:'rlm', title:'RLM — revisão dos erros da bateria de sábado', dur:'30min'},
+      {t:'11:25–11:35', type:'pause', title:'Pausa curta'},
+      {t:'11:35–12:05', type:'task', subject:'ddhh', title:'Bateria de Questões — Direitos Humanos', sub:'Teoria de sábado · espaçamento de ~24h ✔', dur:'30min'},
+      {t:'12:05–12:15', type:'pause', title:'Pausa curta'},
+      {t:'12:15–12:45', type:'task', subject:'legislacao', title:'Bateria de Questões — Legislação Extravagante', sub:'Teoria de sábado · espaçamento de ~24h ✔', dur:'30min'},
+      {t:'12:45–15:00', type:'check', title:'Almoço + tempo livre (descanso protegido)'},
+      {t:'15:00–15:40', type:'task', subject:'redacao', title:'Redação — reescrita do texto com autocorreção', dur:'40min'},
+      {t:'15:40–15:50', type:'pause', title:'Pausa curta'},
+      {t:'15:50–16:10', type:'task', subject:'revisao', title:'Planejamento da semana seguinte', sub:'Organizar PDFs, imprimir questões, ajustar o cronograma.', dur:'20min'},
+      {t:'16:10 →', type:'check', title:'Tempo livre — noite garantida para descansar'},
+    ],
+  };
+
+  // build ids
+  DAYS.forEach(d=>{
+    SCHEDULE[d.key].forEach((item,i)=>{ item.id = d.key+'-'+i; });
+  });
+
+  let selectedDay = (function(){
+    const map = ['dom','seg','ter','qua','qui','sex','sab'];
+    return map[new Date().getDay()];
+  })();
+
+  function dayStats(dayKey){
+    const items = SCHEDULE[dayKey].filter(i=>i.type==='task');
+    const done = items.filter(i=> progress[dayKey] && progress[dayKey][i.id]).length;
+    return {done, total: items.length, pct: items.length? Math.round(done/items.length*100):0};
+  }
+
+  function motivational(pct){
+    if(pct === 0) return 'Vamos começar — um bloco de cada vez.';
+    if(pct < 50) return 'Seguindo em frente, continue assim.';
+    if(pct < 100) return 'Mais da metade — não pare agora.';
+    return 'Dia concluído. Excelente trabalho.';
+  }
+
+  function renderWeekStrip(){
+    const el = document.getElementById('weekStrip');
+    el.innerHTML = '';
+    DAYS.forEach(d=>{
+      const s = dayStats(d.key);
+      const btn = document.createElement('button');
+      btn.className = 'day-btn' + (d.key===selectedDay?' active':'');
+      btn.innerHTML = '<span class="lbl">'+d.short+'</span><div class="track"><div class="fill" style="width:'+s.pct+'%"></div></div>';
+      btn.addEventListener('click', ()=>{ selectedDay = d.key; renderAll(); });
+      el.appendChild(btn);
+    });
+  }
+
+  function renderDayPanel(){
+    const panel = document.getElementById('day-panel');
+    const day = DAYS.find(d=>d.key===selectedDay);
+    const items = SCHEDULE[selectedDay];
+    const s = dayStats(selectedDay);
+
+    let html = '';
+    html += '<div class="panel-head"><h2>'+day.label+'</h2>';
+    if(day.note) html += '<span class="fixed-note">'+day.note+'</span>';
+    html += '</div>';
+
+    html += '<div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:'+s.pct+'%"></div></div>';
+    html += '<div class="progress-text"><span>'+s.done+' de '+s.total+' tarefas concluídas · '+s.pct+'%</span><span class="msg">'+motivational(s.pct)+'</span></div></div>';
+
+    html += '<ul class="timeline">';
+    items.forEach(item=>{
+      if(item.type === 'check' || item.type === 'pause'){
+        const cls = item.anchorClass ? ' '+item.anchorClass : '';
+        html += '<li><div class="time-col">'+item.t+'</div><div class="anchor'+cls+'"><span class="dot"></span><span class="anchor-text">'+item.title+'</span></div></li>';
+      } else {
+        const subj = SUBJECTS[item.subject] || {label:'', color:'#888'};
+        const checked = progress[selectedDay] && progress[selectedDay][item.id];
+        html += '<li><div class="time-col">'+item.t+'</div>';
+        html += '<div class="item-card'+(checked?' done':'')+'" style="border-left-color:'+subj.color+'">';
+        html += '<input type="checkbox" data-id="'+item.id+'" '+(checked?'checked':'')+'>';
+        html += '<div class="item-body"><div class="item-title">'+item.title+'</div>';
+        if(item.sub) html += '<div class="item-sub">'+item.sub+'</div>';
+        html += '<div class="item-meta"><span class="chip" style="background:'+subj.color+'">'+subj.label+'</span><span class="dur">'+(item.dur||'')+'</span></div>';
+        html += '</div></div></li>';
+      }
+    });
+    html += '</ul>';
+
+    html += '<div class="panel-foot"><button class="reset-btn" id="resetDayBtn">Reiniciar este dia</button><span style="font-size:11px;color:var(--muted)">Toque na caixa para marcar</span></div>';
+
+    // legend (only once, keep simple — show always at bottom of panel)
+    html += '<div class="legend">';
+    Object.values(SUBJECTS).forEach(s=>{
+      html += '<span class="legend-item"><span class="legend-dot" style="background:'+s.color+'"></span>'+s.label+'</span>';
+    });
+    html += '</div>';
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', async (e)=>{
+        const id = e.target.getAttribute('data-id');
+        progress[selectedDay] = progress[selectedDay] || {};
+        progress[selectedDay][id] = e.target.checked;
+        await saveProgress();
+        renderAll();
+      });
+    });
+
+    document.getElementById('resetDayBtn').addEventListener('click', async ()=>{
+      progress[selectedDay] = {};
+      await saveProgress();
+      renderAll();
+    });
+  }
+
+  function renderAll(){
+    renderWeekStrip();
+    renderDayPanel();
+    document.getElementById('resetWeekBtn').style.display = 'block';
+  }
+
+  function withTimeout(promise, ms){
+    return Promise.race([
+      promise,
+      new Promise((resolve)=> setTimeout(()=> resolve(null), ms))
+    ]);
+  }
+
+  function readLocal(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){
+      return {};
+    }
+  }
+
+  function writeLocal(data){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){ /* ignora, ex: modo privado */ }
+  }
+
+  async function saveProgress(){
+    // salva localmente primeiro, sempre, isso nunca falha nem trava
+    writeLocal(progress);
+    // tenta também salvar no Claude, sem bloquear nada se demorar
+    try{
+      if (window.storage && window.storage.set){
+        withTimeout(window.storage.set(STORAGE_KEY, JSON.stringify(progress), false), 1500).catch(()=>{});
+      }
+    }catch(e){ /* ignora */ }
+  }
+
+  async function loadProgress(){
+    // 1) mostra na hora com o que tiver salvo localmente — nunca fica travado
+    progress = readLocal();
+    renderAll();
+
+    // 2) tenta puxar do Claude, com prazo curto; se responder, atualiza a tela
+    try{
+      if (window.storage && window.storage.get){
+        const res = await withTimeout(window.storage.get(STORAGE_KEY, false), 1500);
+        if (res && res.value){
+          progress = JSON.parse(res.value);
+          renderAll();
+        }
+      }
+    }catch(e){ /* ambiente sem suporte a window.storage — segue só com o local */ }
+  }
+
+  document.getElementById('resetWeekBtn').addEventListener('click', async ()=>{
+    progress = {};
+    await saveProgress();
+    renderAll();
+  });
+
+  loadProgress();
+})();
+</script>
+</body>
+</html>
